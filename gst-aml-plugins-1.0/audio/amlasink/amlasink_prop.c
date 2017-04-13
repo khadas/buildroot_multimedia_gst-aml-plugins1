@@ -47,7 +47,7 @@ static int amlGetPropVolume(GObject * object, guint prop_id,
 {
     GstAmlAsink *amlsink = GST_AMLASINK (object); 
     int val;
-    dummy_codec_get_volume(&val);
+    //dummy_codec_get_volume(&val);
     g_value_set_double(value,(gdouble)val/100);
     return 0;
 }
@@ -91,7 +91,7 @@ static int amlSetPropVolume(GObject * object, guint prop_id,
     gint temp;
     temp = (gint)(g_value_get_double (value)*100);
     GST_WARNING("asink vol=%d\n",temp);
-    dummy_codec_set_volume(temp);
+    //dummy_codec_set_volume(temp);
     return 0;
 }
 
@@ -103,7 +103,7 @@ static int amlSetPropMute(GObject * object, guint prop_id,
     if(g_value_get_boolean(value))
         temp = 1;
     else temp = 0;
-    dummy_codec_set_mute(temp);
+    //dummy_codec_set_mute(temp);
     return 0;
 }
 
