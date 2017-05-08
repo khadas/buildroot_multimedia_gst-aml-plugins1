@@ -677,7 +677,7 @@ gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf)
 	guint8 *data;
 	guint size;
 	gint written;
-	GstClockTime timestamp, pts;
+	GstClockTime timestamp = GST_CLOCK_TIME_NONE, pts;
 
 	struct buf_status vbuf;
 	GstMapInfo map;
@@ -696,16 +696,15 @@ gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf)
 			usleep(20000);
 		}
 		if (GST_BUFFER_PTS_IS_VALID(buf))
-		timestamp = GST_BUFFER_PTS(buf);	
+		    timestamp = GST_BUFFER_PTS(buf);
 		else if (GST_BUFFER_DTS_IS_VALID(buf))
-		timestamp = GST_BUFFER_DTS(buf);		
-		pts = timestamp * 9LL / 100000LL + 1L;      
+		    timestamp = GST_BUFFER_DTS(buf);
+		pts = timestamp * 9LL / 100000LL + 1L;
         
 		if (timestamp != GST_CLOCK_TIME_NONE) {
 			GST_INFO_OBJECT(amlvdec, " video pts = %x", (unsigned long) pts);
 			if (codec_checkin_pts(amlvdec->pcodec, (unsigned long) pts) != 0)
 				GST_ERROR_OBJECT(amlvdec, "pts checkin flied maybe lose sync");
-
 		}
 
 		if (!amlvdec->is_headerfeed) {
