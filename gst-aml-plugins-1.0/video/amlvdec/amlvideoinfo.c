@@ -383,7 +383,7 @@ AmlStreamInfo *newAmlInfoH265()
     
     info->init = amlInitH265;
     info->writeheader = h265_write_header;
-    info->add_startcode = h264_add_startcode;
+    //info->add_startcode = h264_add_startcode;
     info->finalize = amlH265Finalize;
     return info;
 }
