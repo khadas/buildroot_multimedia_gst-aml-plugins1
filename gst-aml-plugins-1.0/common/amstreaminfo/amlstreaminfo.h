@@ -4,7 +4,7 @@
 #include <gst/gst.h>
 //#include <player.h>
 #include "amlutils.h"
-#include  "../include/codec.h"
+#include  <codec.h>
 #define AML_STREAMINFO_BASE(x) ((AmlStreamInfo *)(x))
 
 typedef enum{
@@ -34,5 +34,6 @@ typedef struct{
 AmlStreamInfo *amlStreamInfoInterface(gchar *format, AmlStreamInfoPool *amlStreamInfoPool);
 AmlStreamInfo *createStreamInfo(gint size);
 void amlStreamInfoFinalize(AmlStreamInfo *info);
+int amlCodecWrite(codec_para_t *pcodec, void *data, int size);
 #endif
 

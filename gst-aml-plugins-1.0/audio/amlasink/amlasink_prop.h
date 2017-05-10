@@ -1,7 +1,7 @@
 #ifndef __AMLASINK_PROP_H__
 #define __AMLASINK_PROP_H__
 #include "gstamlsysctl.h"
-#include  "../../common/include/codec.h"
+#include  <codec.h>
 typedef enum{
     PROP_0 = 0,
     PROP_VOLUME,

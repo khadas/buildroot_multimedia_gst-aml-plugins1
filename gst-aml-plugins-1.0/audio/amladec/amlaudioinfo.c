@@ -233,7 +233,7 @@ gint adts_add_startcode(AmlStreamInfo* info, codec_para_t *pcodec, GstBuffer *bu
         buf[4] = (size >> 3) & 0xff;
         buf[5] = (buf[5] & 0x1f) | ((size & 0x7) << 5);
         if ( gst_buffer_get_size(info->configdata) == ADTS_HEADER_SIZE) {
-            codec_write(pcodec,buf,gst_buffer_get_size(info->configdata));
+            amlCodecWrite(pcodec,buf,gst_buffer_get_size(info->configdata));
 	 // buffer = gst_buffer_merge(info->configdata,buffer);
         }
     }
@@ -393,9 +393,9 @@ gint vorbis_startcode(AmlStreamInfo* info, codec_para_t *pcodec, GstBuffer *buff
 	gint32 buf_size;
     char head[] = "HEAD";
 
-    codec_write(pcodec, head, 4);
+    amlCodecWrite(pcodec, head, 4);
     buf_size = gst_buffer_get_size(buffer);
-    codec_write(pcodec, &buf_size, 4);
+    amlCodecWrite(pcodec, &buf_size, 4);
 
     return 0;
 

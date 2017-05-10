@@ -49,7 +49,7 @@
 #include <gst/gst.h>
 #include <gst/video/gstvideodecoder.h>
 //#include <player.h>
-#include  "../../common/include/codec.h"
+#include <codec.h>
 #include <gstamlsysctl.h>
 #include <amlvideoinfo.h>
 

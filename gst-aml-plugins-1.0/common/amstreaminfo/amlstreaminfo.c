@@ -60,3 +60,26 @@ AmlStreamInfo *amlStreamInfoInterface(gchar *format, AmlStreamInfoPool *amlStrea
     }
     return info;
 }
+
+int amlCodecWrite(codec_para_t *pcodec, void *data, int size)
+{
+    int written = 0;
+    int total = 0;
+    int retry = 0;
+    while (size > 0 && retry < 10) {
+        written = codec_write(pcodec, data, size);
+        if (written >= 0) {
+            size -= written;
+            data += written;
+            total += written;
+            retry = 0;
+        } else if (errno == EAGAIN || errno == EINTR) {
+            retry++;
+            usleep(20000);
+        } else {
+            break;
+        }
+    }
+    return total;
+
+}

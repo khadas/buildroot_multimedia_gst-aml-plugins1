@@ -141,7 +141,7 @@ static gint h265_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
     if (((hevc_data[0] == 0 && hevc_data[1] == 0 && hevc_data[2] == 0 && hevc_data[3] == 1)
         ||(hevc_data[0] == 0 && hevc_data[1] == 0 && hevc_data[2] == 1 )) && config_size < 1024) {
         GST_INFO("add 265 header in stream before header len=%d", config_size);
-        codec_write(pcodec, config, config_size);
+        amlCodecWrite(pcodec, config, config_size);
         gst_buffer_unmap(info->configdata, &map);
         return 0;
     }
@@ -188,7 +188,7 @@ static gint h265_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
       }
     }
     gst_buffer_set_size(spps, sppsLen);
-    codec_write(pcodec, sppsData, sppsLen);
+    amlCodecWrite(pcodec, sppsData, sppsLen);
     gst_buffer_unmap(info->configdata, &map);
     gst_buffer_unmap(spps, &map2);
     if(spps)
@@ -235,7 +235,7 @@ static gint h264_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
     if (((p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] == 1)
         ||(p[0] == 0 && p[1] == 0 && p[2] == 1 )) && config_size < 1024) {
         GST_INFO("add 264 header in stream before header len=%d", config_size);
-        codec_write(pcodec, config, config_size);
+        amlCodecWrite(pcodec, config, config_size);
         return 0;
     }
     if (config_size < 4) {
@@ -282,7 +282,7 @@ static gint h264_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
         return -1;
     }
 //    GST_BUFFER_SIZE(spps) = sppsLen;
-    codec_write(pcodec, sppsData, sppsLen);
+    amlCodecWrite(pcodec, sppsData, sppsLen);
 
     if(spps)
         gst_buffer_unref(spps);
@@ -470,7 +470,7 @@ static gint vp9_add_startcode(AmlStreamInfo* info, codec_para_t *pcodec, GstBuff
     }
 #if 1
     if (frame_number >= 1) {
-        gst_buffer_map(buffer, &map, GST_MAP_READ | GST_MAP_WRITE);
+        gst_buffer_map(buffer, &map, GST_MAP_READ);
         for (cur_frame = 0; cur_frame < frame_number; cur_frame++) {
             int framesize = size[cur_frame];
             int oldframeoff = tframesize[cur_frame] - framesize;
@@ -495,9 +495,9 @@ static gint vp9_add_startcode(AmlStreamInfo* info, codec_para_t *pcodec, GstBuff
             fdata[13] = 'M';
             fdata[14] = 'L';
             fdata[15] = 'V';
-            codec_write(pcodec, fdata, 16);
+            amlCodecWrite(pcodec, fdata, 16);
             framesize -= 4;
-            codec_write(pcodec, old_framedata, framesize);
+            amlCodecWrite(pcodec, old_framedata, framesize);
         }
         gst_buffer_resize(buffer, 0, 0);
         gst_buffer_unmap(buffer, &map);
@@ -747,7 +747,7 @@ static int mjpeg_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
         0xda, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf2, 0xf3, 0xf4,
         0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa
     };
-    codec_write(pcodec,&mjpeg_addon_data,sizeof(mjpeg_addon_data));
+    amlCodecWrite(pcodec,&mjpeg_addon_data,sizeof(mjpeg_addon_data));
     return 0;
 }
 
@@ -805,9 +805,9 @@ static int wmv3_add_startcode(AmlStreamInfo* info, codec_para_t *vpcodec, GstBuf
 	bufout[23] = vpcodec->am_sysinfo.width & 0xff;
 	bufout[24] = (vpcodec->am_sysinfo.height >> 8) & 0xff;
 	bufout[25] = vpcodec->am_sysinfo.height & 0xff;
-	codec_write(vpcodec, bufout, 26);
+	amlCodecWrite(vpcodec, bufout, 26);
 	gst_buffer_map(info->configdata, &map, GST_MAP_READ);
-	codec_write(vpcodec, map.data, map.size);
+	amlCodecWrite(vpcodec, map.data, map.size);
 	gst_buffer_unmap(info->configdata, &map);
 
 	check_sum = 0;
@@ -842,7 +842,7 @@ static int wmv3_add_startcode(AmlStreamInfo* info, codec_para_t *vpcodec, GstBuf
 	bufout[19] = (check_sum >> 8) & 0xff;
 	bufout[20] = check_sum & 0xff;
 	bufout[21] = 0x88;
-	codec_write(vpcodec, bufout, 22);
+	amlCodecWrite(vpcodec, bufout, 22);
 	return 0;
 }
 static int wmv3_write_header(AmlStreamInfo* info, codec_para_t *vpcodec)
@@ -900,7 +900,7 @@ static int wmv3_write_header(AmlStreamInfo* info, codec_para_t *vpcodec)
     gst_buffer_set_size(hdrBuf, data_len + 26-4);
 
     gst_buffer_map(hdrBuf, &map, GST_MAP_READ);
-    codec_write(vpcodec,map.data,map.size);
+    amlCodecWrite(vpcodec,map.data,map.size);
     gst_buffer_unmap(hdrBuf, &map);
     if(hdrBuf)
         gst_buffer_unref(hdrBuf);
@@ -956,7 +956,7 @@ static int divx3_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
         g_print("could not open file:h263.data");
         }
 #endif	
-    codec_write(pcodec, divx311_add, sizeof(divx311_add));
+    amlCodecWrite(pcodec, divx311_add, sizeof(divx311_add));
     return 0;
 }
 
@@ -981,7 +981,7 @@ static gint divx3_add_startcode(AmlStreamInfo* info, codec_para_t *pcodec, GstBu
         g_print("could not open file:h263.data");
         }
 #endif		
-    codec_write(pcodec, prefix, sizeof(prefix));
+    amlCodecWrite(pcodec, prefix, sizeof(prefix));
     return 0;
 }
 

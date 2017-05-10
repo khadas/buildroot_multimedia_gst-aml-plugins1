@@ -7,9 +7,8 @@
 #include <gst/gst.h>
 #include <gst/video/gstvideosink.h>
 #include <gst/video/video.h>
-#include "ion_dev.h"
-#include "ion.h"
-#include "amvideo.h"
+#include <yuvplayer/ion.h>
+#include <yuvplayer/amvideo.h>
 
 
 G_BEGIN_DECLS

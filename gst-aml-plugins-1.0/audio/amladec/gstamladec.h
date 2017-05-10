@@ -51,7 +51,7 @@
 //#include <player.h>
 #include <amlaudioinfo.h>
 #include <gstamlsysctl.h>
-#include  "../../common/include/codec.h"
+#include  <codec.h>
 
 G_BEGIN_DECLS
 
