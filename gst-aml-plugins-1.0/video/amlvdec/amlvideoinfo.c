@@ -394,7 +394,7 @@ AmlStreamInfo *newAmlInfoH264()
     
     info->init = amlInitH264;
     info->writeheader = h264_write_header;
-    info->add_startcode = h264_add_startcode;
+//    info->add_startcode = h264_add_startcode;
     info->finalize = amlH264Finalize;
     return info;
 }
