@@ -89,9 +89,9 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
 	GST_STATIC_CAPS (
-                  "audio/mpeg, " 
-                  "mpegversion=(int)1 " "; "
-                    "audio/mpeg, "
+			"audio/mpeg, "
+			"mpegversion=(int)1 " "; "
+			"audio/mpeg, "
 			"mpegversion = (int) 1, "
 			"layer = (int) [ 1, 3 ], "
 			COMMON_AUDIO_CAPS " ;"
@@ -109,6 +109,9 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
 			"audio/x-vorbis, "
 			COMMON_AUDIO_CAPS "; "
 			"audio/x-flac, "
+			"framed = (boolean) true, "
+			COMMON_AUDIO_CAPS "; "
+			"audio/x-alac, "
 			COMMON_AUDIO_CAPS "; "
 	//		"audio/x-opus; "
 	//		"audio/x-speex, "
@@ -777,8 +780,8 @@ gst_aml_adec_decode (GstAmlAdec *amladec, GstBuffer * buf)
 	guint8 *data;
 	guint size;
 	gint written;
-	GstClockTime timestamp, pts;
-
+	GstClockTime timestamp = GST_CLOCK_TIME_NONE, pts;
+	gboolean valid = TRUE;
 	struct buf_status abuf;
 //	gint64 dt = 0;
 
@@ -843,8 +846,11 @@ gst_aml_adec_decode (GstAmlAdec *amladec, GstBuffer * buf)
 			gst_buffer_map(buf, &map, GST_MAP_READ);
 			data = map.data;
 			size = map.size;
+			if (amladec->pcodec->audio_type == AFORMAT_FLAC && data[0] != 0xFF) {
+			    valid = FALSE;
+			}
 
-			while (size > 0 && amladec->codec_init_ok) {
+			while (size > 0 && amladec->codec_init_ok && valid) {
 				written = codec_write(amladec->pcodec, data, size);
 				if (written >= 0) {
 					size -= written;

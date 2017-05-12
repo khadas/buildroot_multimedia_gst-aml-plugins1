@@ -288,8 +288,6 @@ enum CodecID {
     CODEC_ID_MACE3,
     CODEC_ID_MACE6,
     CODEC_ID_VMDAUDIO,
-    CODEC_ID_SONIC,
-    CODEC_ID_SONIC_LS,
     CODEC_ID_FLAC,
     CODEC_ID_MP3ADU,
     CODEC_ID_MP3ON4,
@@ -382,6 +380,10 @@ typedef struct{
 typedef struct{
     AmlAudioInfo audioinfo;
 }AmlAinfoFlac;
+
+typedef struct{
+    AmlAudioInfo audioinfo;
+}AmlAinfoAlac;
 
 typedef struct{
     AmlAudioInfo audioinfo;
