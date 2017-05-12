@@ -570,6 +570,25 @@ AmlStreamInfo *newAmlInfoVP9()
     return info;
 }
 
+static gint amlInitAVS(AmlStreamInfo* info, codec_para_t *pcodec,
+GstStructure  *structure)
+{
+//    AmlVideoInfo *videoinfo = AML_VIDEOINFO_BASE(info);
+    amlVideoInfoInit(info, pcodec, structure);
+    pcodec->video_type = VFORMAT_AVS;
+    pcodec->am_sysinfo.format = VIDEO_DEC_FORMAT_AVS;
+//    pcodec->am_sysinfo.param = (void *)( EXTERNAL_PTS);
+    return 0;
+}
+
+
+AmlStreamInfo *newAmlInfoAVS()
+{
+    AmlStreamInfo *info = createVideoInfo(sizeof(AmlInfoVP9));
+    info->init = amlInitAVS;
+    return info;
+}
+
 gint amlInitMpeg(AmlStreamInfo* info, codec_para_t *pcodec, GstStructure  *structure)
 {   
     AmlInfoMpeg *mpeg = (AmlInfoMpeg *)info;
@@ -1099,6 +1118,7 @@ static const AmlStreamInfoPool amlVstreamInfoPool[] = {
     {"video/x-h265", newAmlInfoH265},
     {"video/x-h264", newAmlInfoH264},
     {"video/x-vp9", newAmlInfoVP9},
+    {"video/x-cavs", newAmlInfoAVS},
     {"video/mpeg", newAmlInfoMpeg},
     {"video/x-msmpeg", newAmlInfoMsmpeg},
     {"video/x-h263", newAmlInfoH263},
