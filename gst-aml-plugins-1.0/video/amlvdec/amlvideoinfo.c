@@ -200,11 +200,17 @@ static gint h265_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
 
 gint amlInitH264(AmlStreamInfo* info, codec_para_t *pcodec, GstStructure  *structure)
 {   
-//    AmlVideoInfo *videoinfo = AML_VIDEOINFO_BASE(info);
+    AmlVideoInfo *videoinfo = AML_VIDEOINFO_BASE(info);
     amlVideoInfoInit(info, pcodec, structure);
-    pcodec->video_type = VFORMAT_H264;
-    pcodec->am_sysinfo.format = VIDEO_DEC_FORMAT_H264;
-    pcodec->am_sysinfo.param = (void *)( EXTERNAL_PTS);
+    pcodec->am_sysinfo.param = (void *)(EXTERNAL_PTS | SYNC_OUTSIDE);
+    if (videoinfo->width > 2048) {
+        pcodec->video_type = VFORMAT_H264_4K2K;
+        pcodec->am_sysinfo.format = VIDEO_DEC_FORMAT_H264_4K2K;
+    } else {
+        pcodec->video_type = VFORMAT_H264;
+        pcodec->am_sysinfo.format = VIDEO_DEC_FORMAT_H264;
+    }
+
     return 0;
 }
 
