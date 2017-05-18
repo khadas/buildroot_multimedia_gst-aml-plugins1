@@ -642,7 +642,9 @@ gst_set_vstream_info(GstAmlVdec *amlvdec, GstCaps * caps)
 		return FALSE;
 	}
 	amlvdec->info = videoinfo;
-	videoinfo->init(videoinfo, amlvdec->pcodec, structure);
+	if (0 != videoinfo->init(videoinfo, amlvdec->pcodec, structure)) {
+	    return FALSE;
+	}
 	if (amlvdec->pcodec && amlvdec->pcodec->stream_type == STREAM_TYPE_ES_VIDEO) {
 		if (!amlvdec->codec_init_ok) {
 			//amlvdec->pcodec->vbuf_size = 0xf20000;

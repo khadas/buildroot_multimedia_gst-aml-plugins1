@@ -197,20 +197,57 @@ static gint h265_write_header(AmlStreamInfo* info, codec_para_t *pcodec)
     return 0;
 }
 
+gboolean vcodec_profile_support(char *type, char *prop)
+{
+    gboolean ret = FALSE;
+    gint err = 0;
+    char profile[1024] = { 0 };
+    char *line_h, *line_e;
+
+    err = get_sysfs_str("/sys/class/amstream/vcodec_profile", profile,
+            sizeof(profile));
+    if (err || !type) {
+        return FALSE;
+    }
+    line_h = profile;
+    while (1) {
+        if ( !(line_e = strstr(line_h, ";"))) {
+            break;
+        }
+        *(++line_e) = 0;
+        if (!strncmp(line_h, type, strlen(type))) {
+
+            ret = TRUE;
+            if (prop) {
+                if (NULL == strstr(line_h, prop)) {
+                    ret = FALSE;
+                }
+            }
+            break;
+        }
+        line_h = ++line_e;
+    }
+
+//    g_print("find! %s %s %s %d\n", line_h, type, prop, ret);
+    return ret;
+}
 
 gint amlInitH264(AmlStreamInfo* info, codec_para_t *pcodec, GstStructure  *structure)
-{   
+{
+
     AmlVideoInfo *videoinfo = AML_VIDEOINFO_BASE(info);
     amlVideoInfoInit(info, pcodec, structure);
     pcodec->am_sysinfo.param = (void *)(EXTERNAL_PTS | SYNC_OUTSIDE);
-    if (videoinfo->width > 2048) {
+
+    if (videoinfo->width <= 1920 || vcodec_profile_support("h264:", "4k")) {
+        pcodec->video_type = VFORMAT_H264;
+        pcodec->am_sysinfo.format = VIDEO_DEC_FORMAT_H264;
+    } else if (vcodec_profile_support("h264_4k2k:", NULL)) {
         pcodec->video_type = VFORMAT_H264_4K2K;
         pcodec->am_sysinfo.format = VIDEO_DEC_FORMAT_H264_4K2K;
     } else {
-        pcodec->video_type = VFORMAT_H264;
-        pcodec->am_sysinfo.format = VIDEO_DEC_FORMAT_H264;
+        return -1;
     }
-
     return 0;
 }
 
