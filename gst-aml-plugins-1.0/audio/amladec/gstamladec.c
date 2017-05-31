@@ -73,7 +73,7 @@ GST_DEBUG_CATEGORY_STATIC (gst_aml_adec_debug);
 enum
 {
   PROP_0,
-  PROP_PASSTHROUGH,	
+  PROP_PASSTHROUGH,
   PROP_SILENT
 };
 
@@ -96,7 +96,8 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
 			"layer = (int) [ 1, 3 ], "
 			COMMON_AUDIO_CAPS " ;"
 			"audio/mpeg, "
-			"mpegversion = (int) { 2, 4 }, "
+			"mpegversion = (int) {2, 4}, "
+			"framed = (boolean) true, "
 			COMMON_AUDIO_CAPS "; "
 			"audio/x-ac3, "
 			COMMON_AUDIO_CAPS "; "
@@ -144,17 +145,17 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
 			"audio/x-pn-realaudio; "
 			"application/x-ape"
 		)
-    );
+	);
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
 	GST_STATIC_CAPS (
 			"audio/x-raw, "
-	        "format = (string) " GST_AUDIO_NE (S32) ", "
-	        "layout = (string) interleaved, "
-	        "rate = " GST_AUDIO_RATE_RANGE ", "
-	        "channels = " GST_AUDIO_CHANNELS_RANGE)
+			"format = (string) " GST_AUDIO_NE (S32) ", "
+			"layout = (string) interleaved, "
+			"rate = " GST_AUDIO_RATE_RANGE ", "
+			"channels = " GST_AUDIO_CHANNELS_RANGE)
     );
 
 
@@ -170,10 +171,10 @@ static GstFlowReturn 			gst_aml_adec_handle_frame(GstAudioDecoder * dec, GstBuff
 static void 					gst_aml_adec_flush(GstAudioDecoder * dec, gboolean hard);
 
 static gboolean 				gst_set_astream_info(GstAmlAdec *amladec, GstCaps * caps);
-static gboolean                    gst_amladec_sink_event  (GstAudioDecoder * dec, GstEvent * event);
+static gboolean					gst_amladec_sink_event  (GstAudioDecoder * dec, GstEvent * event);
 static gboolean 				aml_decode_init(GstAmlAdec *amladec);
-static GstFlowReturn 		gst_aml_adec_decode (GstAmlAdec *amladec, GstBuffer * buf);
-static GstStateChangeReturn gst_aml_adec_change_state (GstElement * element, GstStateChange transition);
+static GstFlowReturn 			gst_aml_adec_decode (GstAmlAdec *amladec, GstBuffer * buf);
+static GstStateChangeReturn 	gst_aml_adec_change_state (GstElement * element, GstStateChange transition);
 
 struct AmlControl *amlcontrol = NULL;
 #define gst_aml_adec_parent_class parent_class
@@ -195,7 +196,7 @@ gst_aml_adec_class_init (GstAmlAdecClass * klass)
 	g_object_class_install_property(gobject_class, PROP_SILENT,
 			g_param_spec_boolean("silent", "Silent", "Produce verbose output ?", FALSE, G_PARAM_READWRITE));
      g_object_class_install_property (gobject_class, PROP_PASSTHROUGH, g_param_spec_boolean ("pass-through", "Pass-through", "pass-through this track or not ?",
-            FALSE, G_PARAM_READWRITE)); 
+            FALSE, G_PARAM_READWRITE));
 	gst_element_class_add_pad_template(element_class, gst_static_pad_template_get(&sink_factory));
 	gst_element_class_add_pad_template(element_class, gst_static_pad_template_get(&src_factory));
 
@@ -212,7 +213,7 @@ gst_aml_adec_class_init (GstAmlAdecClass * klass)
 	base_class->set_format = GST_DEBUG_FUNCPTR(gst_aml_adec_set_format);
 	base_class->handle_frame = GST_DEBUG_FUNCPTR(gst_aml_adec_handle_frame);
 	base_class->flush = GST_DEBUG_FUNCPTR(gst_aml_adec_flush);
-     base_class->sink_event =  GST_DEBUG_FUNCPTR(gst_amladec_sink_event);
+	base_class->sink_event =  GST_DEBUG_FUNCPTR(gst_amladec_sink_event);
 
 
 }
@@ -228,12 +229,11 @@ gst_aml_adec_init (GstAmlAdec * amladec)
 	GstAudioDecoder *dec;
 	dec = GST_AUDIO_DECODER (amladec);
 	codec_audio_basic_init();
-	GST_WARNING_OBJECT(amladec, "%s %d", __FUNCTION__, __LINE__);	
-     if(!amlcontrol){
-     amlcontrol = g_malloc(sizeof(struct AmlControl));
-     memset(amlcontrol, 0, sizeof(struct AmlControl));    
-     amlcontrol->passthrough = FALSE;
-    }	 
+	if (!amlcontrol) {
+		amlcontrol = g_malloc(sizeof(struct AmlControl));
+		memset(amlcontrol, 0, sizeof(struct AmlControl));
+		amlcontrol->passthrough = FALSE;
+	}
 }
 
 static void
@@ -246,21 +246,21 @@ gst_aml_adec_set_property (GObject * object, guint prop_id,
 	case PROP_SILENT:
 		amladec->silent = g_value_get_boolean(value);
 		break;
-     case PROP_PASSTHROUGH:
-            amladec->passthrough = g_value_get_boolean (value);
-            GST_WARNING_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);	
-            if(amladec->passthrough) {
-                GST_WARNING_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);	
-                if(amladec->codec_init_ok) {
-                GST_WARNING_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);	
-                 amladec->codec_init_ok=0;
-                 codec_close(amladec->pcodec);
-                }
-             amlcontrol->passthrough=FALSE;			
-            }else if (!amladec->codec_init_ok&&!amladec->adecomit){
-                aml_decode_init (amladec);
-            }
-		break;	
+	case PROP_PASSTHROUGH:
+		amladec->passthrough = g_value_get_boolean(value);
+		GST_WARNING_OBJECT(amladec, "%s,%d\n", __FUNCTION__, __LINE__);
+		if (amladec->passthrough) {
+			GST_WARNING_OBJECT(amladec, "%s,%d\n", __FUNCTION__, __LINE__);
+			if (amladec->codec_init_ok) {
+				GST_WARNING_OBJECT(amladec, "%s,%d\n", __FUNCTION__, __LINE__);
+				amladec->codec_init_ok = 0;
+				codec_close(amladec->pcodec);
+			}
+			amlcontrol->passthrough = FALSE;
+		} else if (!amladec->codec_init_ok && !amladec->adecomit) {
+			aml_decode_init(amladec);
+		}
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
 		break;
@@ -277,11 +277,11 @@ gst_aml_adec_get_property (GObject * object, guint prop_id,
 	case PROP_SILENT:
 		g_value_set_boolean(value, amladec->silent);
 		break;
-		
-     case PROP_PASSTHROUGH:
-            g_value_set_boolean (value,amladec->passthrough);
-            break;
-			
+
+	case PROP_PASSTHROUGH:
+		g_value_set_boolean(value, amladec->passthrough);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
 		break;
@@ -300,88 +300,81 @@ gst_aml_adec_open(GstAudioDecoder * dec)
 	return TRUE;
 }
 
-static void gst_amladec_polling_eos (GstAmlAdec *amladec)
+static void
+gst_amladec_polling_eos (GstAmlAdec *amladec)
 {
-    unsigned rp_move_count = 40,count=0;
-    struct buf_status abuf;
-    unsigned last_rp = 0;
-    int ret=1;	
-    do {
-	  if(count>2000)//avoid infinite loop
-	      break;	
-        ret = codec_get_abuf_state(amladec->pcodec, &abuf);
-        if (ret != 0) {
-            GST_ERROR("codec_get_vbuf_state error: %x\n", -ret);
-            break;
-        }
-        if(last_rp != abuf.read_pointer){
-            last_rp = abuf.read_pointer;
-            rp_move_count = 200;
-        }else
-            rp_move_count--;        
-        usleep(1000*30);
-        count++;	
-
-     /*   if(amlvdec->passthrough) {
-          break;
-        }*/
-    } while (abuf.data_len > 0x100 && rp_move_count > 0);
-   // amlvdec->passthrough = FALSE;
-    //gst_pad_push_event (amlvdec->srcpad, gst_event_new_eos ());
-    gst_task_pause (amladec->eos_task);
-
+	static int last_pts = -1;
+	static int stop_count = 5;
+	static int delay = 0;
+	unsigned long pts;
+	usleep(1000 * 100);
+	pts = codec_get_apts(amladec->pcodec);
+	if (amladec->last_checkin_pts != -1L && pts != -1L && pts != 1) {
+		if (last_pts != pts) {
+			last_pts = pts;
+			stop_count = delay + 5;
+		} else if (!amladec->is_paused && amladec->is_eos) {
+			stop_count--;
+		}
+		GST_INFO_OBJECT(amladec, "TESTA %ld %ld %d %d %d\n", pts,
+				amladec->last_checkin_pts, amladec->is_eos, amladec->is_paused,
+				stop_count);
+		if ((pts > amladec->last_checkin_pts && amladec->is_eos)
+				|| (amladec->is_eos && !amladec->is_paused && stop_count < 0)) {
+			GST_AUDIO_DECODER_CLASS(parent_class)->sink_event(amladec,
+					gst_event_new_eos());
+			gst_task_pause(amladec->eos_task);
+		}
+	} else if (pts == 1) {
+		delay++;
+	}
 }
 
 static void
-	start_eos_task (GstAmlAdec *amladec)
+start_eos_task (GstAmlAdec *amladec)
 {
-    if (! amladec->eos_task) {
-        amladec->eos_task =
-        gst_task_new ((GstTaskFunction) gst_amladec_polling_eos, amladec,NULL);
-
-        gst_task_set_lock (amladec->eos_task, &amladec->eos_lock);
-    }
-    gst_task_start (amladec->eos_task);
+	if (!amladec->eos_task) {
+		amladec->eos_task = gst_task_new(
+			(GstTaskFunction) gst_amladec_polling_eos, amladec, NULL);
+		gst_task_set_lock(amladec->eos_task, &amladec->eos_lock);
+	}
+	gst_task_start(amladec->eos_task);
 }
 
 static void
-	stop_eos_task (GstAmlAdec *amladec)
+stop_eos_task (GstAmlAdec *amladec)
 {
-    if (! amladec->eos_task)
-        return;
-
-    gst_task_stop (amladec->eos_task);
-    g_rec_mutex_lock (&amladec->eos_lock);
-    g_rec_mutex_unlock (&amladec->eos_lock);
-    gst_task_join (amladec->eos_task);
-    gst_object_unref (amladec->eos_task);
-    amladec->eos_task = NULL;
+	if (!amladec->eos_task)
+		return;
+	gst_task_stop(amladec->eos_task);
+	gst_task_join(amladec->eos_task);
+	gst_object_unref(amladec->eos_task);
+	amladec->eos_task = NULL;
 }
 #if 0
-static gboolean gst_amladec_polling_eos (GstAmlAdec *amladec)  
+static gboolean gst_amladec_polling_eos (GstAmlAdec *amladec)
 {
-    unsigned rp_move_count = 40,count=0;
-    unsigned last_rp = 0;
-    struct buf_status abuf;
-    int ret=1;	
-    do {
-        if(count>2000)//avoid infinite loop
-	          break;	
-        ret = codec_get_abuf_state (amladec->pcodec, &abuf);
-        if (ret != 0) {
-            GST_ERROR("codec_get_abuf_state error: %x\n", -ret);
-            break;
-        }
-        if(last_rp != abuf.read_pointer){
-            last_rp = abuf.read_pointer;
-            rp_move_count = 200;//40;
-        }else
-           rp_move_count--;        
-        usleep(1000*30);
-        count++;	
-    } while (abuf.data_len > 0x100 && rp_move_count > 0);
-    return TRUE;
-
+	unsigned rp_move_count = 40,count=0;
+	unsigned last_rp = 0;
+	struct buf_status abuf;
+	int ret=1;
+	do {
+		if (count>2000)//avoid infinite loop
+			break;
+		ret = codec_get_abuf_state (amladec->pcodec, &abuf);
+		if (ret != 0) {
+			GST_ERROR("codec_get_abuf_state error: %x\n", -ret);
+			break;
+		}
+		if (last_rp != abuf.read_pointer) {
+			last_rp = abuf.read_pointer;
+			rp_move_count = 200;//40;
+		} else
+			rp_move_count--;
+		usleep(1000*30);
+		count++;
+	} while (abuf.data_len > 0x100 && rp_move_count > 0);
+	return TRUE;
 }
 
 #endif
@@ -396,14 +389,14 @@ gst_aml_adec_close(GstAudioDecoder * dec)
 		if (amladec->is_paused == TRUE) {
 			ret = codec_resume(amladec->pcodec);
 			if (ret != 0) {
-				GST_ERROR("[%s:%d]resume failed!ret=%d", __FUNCTION__, __LINE__, ret);
+				GST_ERROR_OBJECT(amladec, "resume failed!ret=%d", ret);
 			} else {
 				amladec->is_paused = FALSE;
 			}
 		}
 		codec_close(amladec->pcodec);
 	}
-	
+
 	if (amladec->info) {
 		amladec->info->finalize(amladec->info);
 		amladec->info = NULL;
@@ -413,18 +406,17 @@ gst_aml_adec_close(GstAudioDecoder * dec)
 		amladec->pcodec = NULL;
 	}
 
-   if (amlcontrol) {	
-        g_free(amlcontrol);
-        amlcontrol = NULL;
-    }
-  	GST_DEBUG_OBJECT(amladec, "%s %d", __FUNCTION__, __LINE__);
+	if (amlcontrol) {
+		g_free(amlcontrol);
+		amlcontrol = NULL;
+	}
+	GST_DEBUG_OBJECT(amladec, "close done");
 	return TRUE;
 }
 
 static gboolean
 gst_aml_adec_start(GstAudioDecoder * dec)
 {
-      
 	GstAmlAdec *amladec = GST_AMLADEC(dec);
 
 	amladec->pcodec->audio_pid = 0;
@@ -454,28 +446,31 @@ gst_aml_adec_start(GstAudioDecoder * dec)
 //	amladec->apeparser->accusize = 0;
 //	amladec->apeparser->currentframe = 0;
 	amladec->is_ape = FALSE;
-
-//	amlcontrol->adecnumber++;     
+	amladec->eos_task = NULL;
+	amladec->last_checkin_pts = -1L;
+//	amlcontrol->adecnumber++;
 	amladec->adecomit = FALSE;
-
+	amladec->segment.rate = 1.0;
 	return TRUE;
 }
 static gboolean
 gst_aml_adec_stop(GstAudioDecoder * dec)
 {
-	int ret = FALSE;
+	int ret = TRUE;
 	GstAmlAdec *amladec = GST_AMLADEC(dec);
-     if (amladec->is_paused == TRUE && amladec->codec_init_ok) {
-         ret=codec_resume (amladec->pcodec);
-        if (ret != 0) {
-            GST_ERROR("[%s:%d]resume failed!ret=%d\n", __FUNCTION__, __LINE__, ret);
-        }else
-            amladec->is_paused = FALSE;
-    }
-     ret = TRUE;
+	if (amladec->is_paused == TRUE && amladec->codec_init_ok) {
+#if 0
+		ret = codec_resume(amladec->pcodec);
+		if (ret != 0) {
+			GST_ERROR_OBJECT(amladec, "resume failed!ret=%d\n", ret);
+		} else {
+			amladec->is_paused = FALSE;
+		}
+#endif
+	}
 	return ret;
 }
-	
+
 static gboolean
 gst_aml_adec_set_format(GstAudioDecoder *dec, GstCaps *caps)
 {
@@ -539,7 +534,7 @@ gst_aml_adec_set_format(GstAudioDecoder *dec, GstCaps *caps)
 
 	structure = gst_caps_get_structure(caps, 0);
 	name = gst_structure_get_name(structure);
-	GST_INFO_OBJECT(amladec, "%s = %s", __FUNCTION__, name);
+	GST_INFO_OBJECT(amladec, "format = %s",  name);
 	if (gst_structure_has_name(structure, "application/x-ape")) {
 		amladec->is_ape = TRUE;
 //		amladec->apeparser->ape_head.bhead = TRUE;
@@ -563,7 +558,6 @@ gst_aml_adec_handle_frame(GstAudioDecoder * dec, GstBuffer * buffer)
 	GstAmlAdec *amladec = GST_AMLADEC(dec);
 	GstBuffer *outbuffer;
 
-	GST_DEBUG_OBJECT(dec, "%s %d", __FUNCTION__, __LINE__);
 	if (G_UNLIKELY(!buffer))
 		return GST_FLOW_OK;
 
@@ -573,150 +567,146 @@ gst_aml_adec_handle_frame(GstAudioDecoder * dec, GstBuffer * buffer)
 	//return gst_pad_push (amladec->src_factory, buffer);
 	outbuffer = gst_buffer_new_and_alloc(8 * amladec->pcodec->audio_info.channels);
 	ret = gst_audio_decoder_finish_frame(dec, outbuffer, 1);
-	GST_DEBUG_OBJECT(dec, "ret=%d,%s %d", ret,__FUNCTION__, __LINE__);
 	return ret;
 }
 
 static gboolean
 gst_amladec_sink_event  (GstAudioDecoder * dec, GstEvent * event)
 {
-    gboolean ret = TRUE;
-    GstAmlAdec *amladec = GST_AMLADEC(dec);
-     GST_INFO_OBJECT (amladec, "Got %s event on sink pad", GST_EVENT_TYPE_NAME (event));
-    switch (GST_EVENT_TYPE (event)) {
-      /*  case GST_EVENT_NEWSEGMENT:
-        {
-            gboolean update;
-            GstFormat format;
-            gdouble rate, arate;
-            gint64 start, stop, time;
-						
-						stop_eos_task (amlvdec);
-            gst_event_parse_new_segment_full (event, &update, &rate, &arate, &format, &start, &stop, &time);
+	gboolean ret = TRUE;
+	GstAmlAdec *amladec = GST_AMLADEC(dec);
+	GST_INFO_OBJECT(amladec, "Got %s event on sink pad",
+			GST_EVENT_TYPE_NAME(event));
+	switch (GST_EVENT_TYPE(event)) {
+	case GST_EVENT_SEGMENT: {
+		gst_event_copy_segment(event, &amladec->segment);
+		GST_INFO_OBJECT(amladec, "rat = %f\n", amladec->segment.rate);
+		ret = GST_AUDIO_DECODER_CLASS (parent_class)->sink_event(amladec,
+				event);
+		break;
+	}
+#if 0
+	case GST_EVENT_FLUSH_START:
+		if (amladec->codec_init_ok) {
+			set_black_policy(0);
+		}
+		break;
+	case GST_EVENT_FLUSH_STOP: {
+		stop_eos_task(amladec);
+		if (amladec->codec_init_ok) {
+			gint res = -1;
+			res = codec_reset(amladec->pcodec);
+			if (res < 0) {
+				GST_ERROR("reset vcodec failed, res= %x\n", res);
+				return FALSE;
+			}
+			amladec->is_headerfeed = FALSE;
+		}
+		GST_WARNING("aformat:%d\n", amladec->pcodec->audio_type);
 
-            if (format != GST_FORMAT_TIME)
-                goto newseg_wrong_format;
-            amlvdec_forward_process(amlvdec, update, rate, format, start, stop, time);
-            gst_segment_set_newsegment_full (&amlvdec->segment, update, rate, arate, format, start, stop, time);
+		break;
+	}
+#endif
+	case GST_EVENT_EOS:
+		GST_WARNING("get GST_EVENT_EOS,check for audio end\n");
+		if (amladec->codec_init_ok) {
+			ret = FALSE;
+			amladec->is_eos = TRUE;
+		} else {
+			ret = GST_AUDIO_DECODER_CLASS(parent_class)->sink_event(amladec,
+					event);
+		}
+		break;
+	default:
+		ret = GST_AUDIO_DECODER_CLASS(parent_class)->sink_event(amladec, event);
+		break;
+	}
 
-            GST_DEBUG_OBJECT (amlvdec,"Pushing newseg rate %g, applied rate %g, format %d, start %"
-                G_GINT64_FORMAT ", stop %" G_GINT64_FORMAT ", pos %" G_GINT64_FORMAT,
-                rate, arate, format, start, stop, time);
-
-            ret = gst_pad_push_event (amlvdec->srcpad, event);
-            break;
-        }*/
-		
-        case GST_EVENT_FLUSH_START:
-	   if(amladec->codec_init_ok){
-                set_black_policy(0);
-            }		
-         break;
-	  
-        case GST_EVENT_FLUSH_STOP:
-        {
-       	 stop_eos_task (amladec);
-            if(amladec->codec_init_ok){
-                gint res = -1;
-                res = codec_reset(amladec->pcodec);
-                if (res < 0) {
-                    GST_ERROR("reset vcodec failed, res= %x\n", res);
-                    return FALSE;
-                }            
-                amladec->is_headerfeed = FALSE; 
-            }
-              GST_WARNING("aformat:%d\n", amladec->pcodec->audio_type);     
-
-            break;
-        } 
-		
-        case GST_EVENT_EOS:
-            GST_WARNING("get GST_EVENT_EOS,check for audio end\n");
-            if(amladec->codec_init_ok)	{ 
-			start_eos_task(amladec);		
-                amladec->is_eos = TRUE;
-            }
-                
-     
-            ret = TRUE;
-            break;
-		 
-        default:           
-            break;
-    }
-
-done:
-     ret = GST_AUDIO_DECODER_CLASS (parent_class)->sink_event (amladec, event);
-
-    return ret;
+	return ret;
 }
 
 static GstStateChangeReturn
 gst_aml_adec_change_state (GstElement * element, GstStateChange transition)
 {
-  GstStateChangeReturn result = GST_STATE_CHANGE_SUCCESS;
-  gint ret = 0 ;
-  GstAmlAdec *amladec = GST_AMLADEC(element);
-  GST_INFO_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);
-  g_return_val_if_fail (GST_IS_AMLADEC (element), GST_STATE_CHANGE_FAILURE);
-  switch (transition) {
-    case GST_STATE_CHANGE_NULL_TO_READY:
-        GST_INFO_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);
-        break;
-  		
-  case GST_STATE_CHANGE_READY_TO_PAUSED:
-        GST_INFO_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);
-        break;
-  case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
-        GST_INFO_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);
-        if (amladec->is_paused == TRUE && amladec->codec_init_ok) {
-                ret=codec_resume (amladec->pcodec);
-                if (ret != 0) {
-                      GST_ERROR("[%s:%d]resume failed!ret=%d\n", __FUNCTION__, __LINE__, ret);
-                }else
-                amladec->is_paused = FALSE;
-        }
-        break;
+	GstStateChangeReturn result = GST_STATE_CHANGE_SUCCESS;
+	gint ret = 0;
+	GstAmlAdec *amladec = GST_AMLADEC(element);
+	GST_INFO_OBJECT(amladec, "%s,%d\n", __FUNCTION__, __LINE__);
+	g_return_val_if_fail(GST_IS_AMLADEC(element), GST_STATE_CHANGE_FAILURE);
+	switch (transition) {
+#if 0
+	case GST_STATE_CHANGE_NULL_TO_READY:
+		GST_INFO_OBJECT(amladec, "GST_STATE_CHANGE_NULL_TO_READY");
+		break;
 
-        default:
-          break;
-    }
-  result = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
+	case GST_STATE_CHANGE_READY_TO_PAUSED:
+		GST_INFO_OBJECT(amladec, "GST_STATE_CHANGE_READY_TO_PAUSED");
+		break;
+#endif
+	case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
+		GST_INFO_OBJECT(amladec, "GST_STATE_CHANGE_PAUSED_TO_PLAYING");
+		if (amladec->is_paused == TRUE && amladec->codec_init_ok) {
+			ret = codec_resume(amladec->pcodec);
+			if (ret != 0) {
+				GST_ERROR_OBJECT(amladec, "resume failed!ret=%d\n", ret);
+			} else {
+				amladec->is_paused = FALSE;
+			}
+		}
+		break;
 
-switch (transition) {
+	default:
+		break;
+	}
+	result = GST_ELEMENT_CLASS (parent_class)->change_state(element,
+			transition);
+
+	switch (transition) {
 	case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
-		 GST_INFO_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);
-          if(!amladec->is_eos &&  amladec->codec_init_ok){ 
-                ret=codec_pause(amladec->pcodec);
-                if (ret != 0) {
-                    GST_ERROR("[%s:%d]pause failed!ret=%d\n", __FUNCTION__, __LINE__, ret);
-                }else
-                    amladec->is_paused = TRUE;
-            }
-            break;
-			
-        case GST_STATE_CHANGE_PAUSED_TO_READY:
-            GST_INFO_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);
-          break;
-		  
-        case GST_STATE_CHANGE_READY_TO_NULL:
-        	 GST_INFO_OBJECT(amladec,"%s,%d\n",__FUNCTION__,__LINE__);
-            break;
-			
-        default:
-            break;
-    }
-  GST_WARNING_OBJECT(amladec,"%s,%d,ret=%d\n",__FUNCTION__,__LINE__,result);
-  return result;
+		GST_INFO_OBJECT(amladec, "GST_STATE_CHANGE_PLAYING_TO_PAUSED");
+		if (amladec->codec_init_ok) {
+			ret = codec_pause(amladec->pcodec);
+			if (ret != 0) {
+				GST_ERROR_OBJECT(amladec, "pause failed!ret=%d", ret);
+			} else {
+				amladec->is_paused = TRUE;
+			}
+		}
+		break;
+#if 0
+	case GST_STATE_CHANGE_PAUSED_TO_READY:
+		GST_INFO_OBJECT(amladec, "GST_STATE_CHANGE_PAUSED_TO_READY");
+		break;
+
+	case GST_STATE_CHANGE_READY_TO_NULL:
+		GST_INFO_OBJECT(amladec, "GST_STATE_CHANGE_READY_TO_NULL");
+		break;
+#endif
+	default:
+		break;
+	}
+	GST_WARNING_OBJECT(amladec, "ret=%d", result);
+	return result;
 }
 
 static void
 gst_aml_adec_flush(GstAudioDecoder * dec, gboolean hard)
 {
+	int ret;
 	GstAmlAdec *amladec = GST_AMLADEC(dec);
-	//if (hard) {
-	//	codec_reset(amladec->pcodec);
-	//}
+	if (hard && amladec->codec_init_ok && !amladec->is_paused
+			&& amladec->segment.rate > 0.0) {
+		gst_task_pause(amladec->eos_task);
+		ret = codec_reset(amladec->pcodec);
+		if (ret < 0) {
+			GST_ERROR("reset acodec failed, ret=%x", ret);
+		} else {
+			amladec->is_headerfeed = FALSE;
+		}
+		amladec->is_eos = FALSE;
+		amladec->last_checkin_pts = -1L;
+		gst_task_start(amladec->eos_task);
+	}
 }
 
 static gboolean
@@ -733,22 +723,26 @@ gst_set_astream_info(GstAmlAdec *amladec, GstCaps * caps)
 	name = gst_structure_get_name(structure);
 	info = amlAstreamInfoInterface(name);
 	if (!info) {
-            GST_ERROR("unsupport audio format name=%s", name);
-            return FALSE;
+		GST_ERROR("unsupport audio format name=%s", name);
+		return FALSE;
 	}
 	amladec->info = info;
 	info->init(info, amladec->pcodec, structure);
-	if (amladec->pcodec && amladec->pcodec->stream_type == STREAM_TYPE_ES_AUDIO) {
-            if (info->writeheader)
-                info->writeheader(info, amladec->pcodec);
-                GST_WARNING_OBJECT(amladec,"%s,%d,passthrough=%d\n",__FUNCTION__,__LINE__,amlcontrol->passthrough);
-                if (!amladec->codec_init_ok && !amlcontrol->passthrough && !amladec->adecomit) {
-                    amlcontrol->passthrough = TRUE;	
-                GST_WARNING_OBJECT(amladec,"%s,%d,passthrough=%d\n",__FUNCTION__,__LINE__,amlcontrol->passthrough);
-                if (!aml_decode_init(amladec) )  {
-                    amlcontrol->passthrough = FALSE;		  	
-                return FALSE;
-		   }
+	if (amladec->pcodec
+			&& amladec->pcodec->stream_type == STREAM_TYPE_ES_AUDIO) {
+		if (info->writeheader)
+			info->writeheader(info, amladec->pcodec);
+		GST_WARNING_OBJECT(amladec, "passthrough=%d\n",
+				amlcontrol->passthrough);
+		if (!amladec->codec_init_ok && !amlcontrol->passthrough
+				&& !amladec->adecomit) {
+			amlcontrol->passthrough = TRUE;
+			GST_WARNING_OBJECT(amladec, "passthrough=%d\n",
+					amlcontrol->passthrough);
+			if (!aml_decode_init(amladec)) {
+				amlcontrol->passthrough = FALSE;
+				return FALSE;
+			}
 		}
 	}
 
@@ -760,7 +754,7 @@ aml_decode_init(GstAmlAdec *amladec)
 {
 	int ret;
 	//amladec->pcodec->abuf_size =  0xc0000;
-	GST_WARNING_OBJECT(amladec,"%s,%d,passthrough=%d\n",__FUNCTION__,__LINE__,amlcontrol->passthrough);
+	GST_WARNING_OBJECT(amladec, "passthrough=%d\n", amlcontrol->passthrough);
 	ret = codec_init(amladec->pcodec);
 	if (ret != CODEC_ERROR_NONE) {
 		GST_ERROR_OBJECT(amladec, "codec init failed, ret=-0x%x", -ret);
@@ -769,7 +763,7 @@ aml_decode_init(GstAmlAdec *amladec)
 	amladec->codec_init_ok = 1;
 	amlcontrol->passthrough = TRUE;
 	set_tsync_enable(1);
-
+	start_eos_task(amladec);
 	return TRUE;
 }
 
@@ -807,12 +801,17 @@ gst_aml_adec_decode (GstAmlAdec *amladec, GstBuffer * buf)
 		else if (GST_BUFFER_DTS_IS_VALID(buf))
 			timestamp = GST_BUFFER_DTS(buf);
 		pts = timestamp * 9LL / 100000LL + 1L;
+		if (amladec->segment.rate < 0.0) {
+		    pts = ~pts;
+		}
 		codec_set_av_threshold(amladec->pcodec, 100);
 		if (timestamp != GST_CLOCK_TIME_NONE) {
 			GST_DEBUG_OBJECT(amladec, "audio pts = %x", (unsigned long) pts);
-
-			if (codec_checkin_pts(amladec->pcodec, (unsigned long) pts) != 0)
+			if (codec_checkin_pts(amladec->pcodec, (unsigned long) pts) != 0) {
 				GST_WARNING_OBJECT(amladec, "pts checkin flied maybe lose sync");
+			} else {
+			    amladec->last_checkin_pts = pts;
+			}
 		}
 
 		if (TRUE == amladec->is_ape) {
@@ -887,12 +886,11 @@ amladec_init (GstPlugin * amladec)
 	 * exchange the string 'Template amladec' with your description
 	 */
 	GST_DEBUG_CATEGORY_INIT(gst_aml_adec_debug, "amladec", 0, "Amlogic Audio Decoder");
-    if(!amlcontrol){
-        amlcontrol = g_malloc(sizeof(struct AmlControl));
-        memset(amlcontrol, 0, sizeof(struct AmlControl));   
-        amlcontrol->passthrough = FALSE;	
-    }
-		GST_DEBUG( "%s %d\n", __FUNCTION__, __LINE__);
+	if (!amlcontrol) {
+		amlcontrol = g_malloc(sizeof(struct AmlControl));
+		memset(amlcontrol, 0, sizeof(struct AmlControl));
+		amlcontrol->passthrough = FALSE;
+	}
 	return gst_element_register(amladec, "amladec", GST_RANK_PRIMARY+1, GST_TYPE_AMLADEC);
 }
 

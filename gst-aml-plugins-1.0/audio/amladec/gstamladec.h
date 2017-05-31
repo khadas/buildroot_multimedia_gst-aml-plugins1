@@ -91,10 +91,11 @@ struct _GstAmlAdec
 	gboolean is_eos;
 	GstTask * eos_task;
     GStaticRecMutex eos_lock;
+    unsigned long last_checkin_pts;
 //
 ////	AmlState eState;
 	codec_para_t *pcodec;
-//	GstSegment segment;
+	GstSegment segment;
 //	gboolean passthrough;
 //	GstCaps *tmpcaps;
 //	GstTask * eos_task;

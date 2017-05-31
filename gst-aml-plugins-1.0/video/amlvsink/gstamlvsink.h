@@ -49,6 +49,7 @@ struct _GstAmlVsink {
   int framerate_n, framerate_d;
   int mIonFd;
   int use_yuvplayer;
+  GstSegment segment;
 #if DEBUG_DUMP
   int dump_fd;
 #endif

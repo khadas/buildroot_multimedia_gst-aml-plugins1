@@ -110,7 +110,7 @@ gint amlAudioInfoInit(AmlStreamInfo* info, codec_para_t *pcodec, GstStructure  *
         }
 
     }
-    GST_WARNING("Audio: samplerate=%d channels=%d", audio->sample_rate, audio->channels);
+    GST_WARNING("Audio: samplerate=%d channels=%d configdata=%p", audio->sample_rate, audio->channels, info->configdata);
     if (0 == pcodec->audio_info.channels)
         pcodec->audio_info.channels = 2;
     if (0 == pcodec->audio_info.sample_rate)

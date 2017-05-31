@@ -46,7 +46,7 @@ struct _GstAmlAsink {
   GstAudioSink audiosink;
 
   /*< private >*/
-
+  GstSegment segment;
   /* instance properties */
 
   gboolean mute;

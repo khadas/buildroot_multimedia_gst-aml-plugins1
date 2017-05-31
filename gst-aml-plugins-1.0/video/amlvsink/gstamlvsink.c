@@ -22,18 +22,24 @@ static void gst_aml_vsink_get_times (GstBaseSink * basesink,
     GstBuffer * buffer, GstClockTime * start, GstClockTime * end);
 #endif
 
-static GstFlowReturn gst_aml_vsink_show_frame (GstVideoSink * videosink, GstBuffer * buff);
+static GstFlowReturn gst_aml_vsink_show_frame(GstVideoSink * videosink,
+        GstBuffer * buff);
 
-static gboolean gst_aml_vsink_start (GstBaseSink * bsink);
-static gboolean gst_aml_vsink_stop (GstBaseSink * bsink);
+static gboolean gst_aml_vsink_start(GstBaseSink * bsink);
+static gboolean gst_aml_vsink_stop(GstBaseSink * bsink);
 
-static GstCaps *gst_aml_vsink_getcaps (GstBaseSink * bsink, GstCaps * filter);
-static gboolean gst_aml_vsink_setcaps (GstBaseSink * bsink, GstCaps * caps);
+static GstCaps *gst_aml_vsink_getcaps(GstBaseSink * bsink, GstCaps * filter);
+static gboolean gst_aml_vsink_setcaps(GstBaseSink * bsink, GstCaps * caps);
 
-static void gst_aml_vsink_finalize (GObject * object);
-static void gst_aml_vsink_set_property (GObject * object, guint prop_id, const GValue * value, GParamSpec * pspec);
-static void gst_aml_vsink_get_property (GObject * object, guint prop_id, GValue * value, GParamSpec * pspec);
-static GstStateChangeReturn gst_aml_vsink_change_state (GstElement * element, GstStateChange transition);
+static void gst_aml_vsink_finalize(GObject * object);
+static void gst_aml_vsink_set_property(GObject * object, guint prop_id,
+        const GValue * value, GParamSpec * pspec);
+static void gst_aml_vsink_get_property(GObject * object, guint prop_id,
+        GValue * value, GParamSpec * pspec);
+static GstStateChangeReturn gst_aml_vsink_change_state(GstElement * element,
+        GstStateChange transition);
+static gboolean gst_aml_vsink_query(GstElement * element, GstQuery *query);
+static gboolean gst_aml_vsink_event(GstElement * element, GstEvent *event);
 
 #define VIDEO_CAPS "{ I420 }"
 
@@ -63,13 +69,13 @@ gst_aml_vsink_class_init (GstAmlVsinkClass * klass)
   gobject_class->get_property = gst_aml_vsink_get_property;
   gobject_class->finalize = gst_aml_vsink_finalize;
 
-  gstelement_class->change_state =
-      GST_DEBUG_FUNCPTR (gst_aml_vsink_change_state);
-
+  gstelement_class->change_state = GST_DEBUG_FUNCPTR (gst_aml_vsink_change_state);
+  gstelement_class->query = GST_DEBUG_FUNCPTR (gst_aml_vsink_query);
   basesink_class->set_caps = GST_DEBUG_FUNCPTR (gst_aml_vsink_setcaps);
   basesink_class->get_caps = GST_DEBUG_FUNCPTR (gst_aml_vsink_getcaps);
   basesink_class->start = GST_DEBUG_FUNCPTR (gst_aml_vsink_start);
   basesink_class->stop = GST_DEBUG_FUNCPTR (gst_aml_vsink_stop);
+  basesink_class->event = GST_DEBUG_FUNCPTR (gst_aml_vsink_event);
 
   videosink_class->show_frame = GST_DEBUG_FUNCPTR (gst_aml_vsink_show_frame);
 
@@ -99,6 +105,7 @@ gst_aml_vsink_init (GstAmlVsink * amlvsink)
 	amlvsink->mIonFd = 0;
 	amlvsink->mOutBuffer = NULL;
 	amlvsink->use_yuvplayer = 0;
+	amlvsink->segment.rate = 1.0;
 #if DEBUG_DUMP
 	amlvsink->dump_fd = open("/tmp/gst_aml_vsink.dump", O_CREAT | O_TRUNC | O_WRONLY, 0777);
 #endif
@@ -297,37 +304,91 @@ gst_aml_vsink_change_state (GstElement * element, GstStateChange transition)
     GstStateChangeReturn result;
     switch (transition) {
         case GST_STATE_CHANGE_NULL_TO_READY:
-			 GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
+            GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
                 //prepared function
             break;
         case GST_STATE_CHANGE_READY_TO_PAUSED:
-			 GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
+            GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
             break;
         case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
-			 GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
+            GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
             break;
         default:
             break;
     }
 
     result = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
-  
-    switch (transition) {
-	  case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
-	  	 GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
 
-	      break;
-        case GST_STATE_CHANGE_PAUSED_TO_READY: 
-			 GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
-            break;
-        case GST_STATE_CHANGE_READY_TO_NULL:  
-			 GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
-            break;
-        default:
-            break;
+    switch (transition) {
+    case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
+        GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
+
+        break;
+    case GST_STATE_CHANGE_PAUSED_TO_READY:
+        GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
+        break;
+    case GST_STATE_CHANGE_READY_TO_NULL:
+        GST_ERROR("%s,%d\n",__FUNCTION__,__LINE__);
+        break;
+    default:
+         break;
     }
-	GST_ERROR("%s,%d,result=%d\n",__FUNCTION__,__LINE__,result);
-  return result;
+    GST_ERROR("%s,%d,result=%d\n",__FUNCTION__,__LINE__,result);
+    return result;
+}
+
+static gboolean
+gst_aml_vsink_query (GstElement * element, GstQuery * query)
+{
+    gboolean res = FALSE;
+    GstAmlVsink *amlvsink= GST_AMLVSINK (element);
+    switch (GST_QUERY_TYPE(query)) {
+    case GST_QUERY_POSITION:
+    {
+        GstClockTime cur;
+        GstFormat format;
+        unsigned long pts = get_sysfs_int("/sys/class/tsync/pts_pcrscr");
+        if (pts && pts != 1) {
+            if (amlvsink->segment.rate < 0.0) {
+                pts = ~pts;
+            }
+            gst_query_parse_position(query, &format, NULL);
+            cur = (GstClockTime) pts * 100000LL / 9LL;
+            gst_query_set_position(query, format, cur);
+            res = TRUE;
+        } else {
+            res = FALSE;
+        }
+
+        break;
+    }
+    default:
+        res = GST_ELEMENT_CLASS(parent_class)->query(element, query);
+        break;
+    }
+
+
+    return res;
+}
+
+static gboolean
+gst_aml_vsink_event(GstElement * element, GstEvent *event)
+{
+    gboolean ret = FALSE;
+    GstAmlVsink *amlvsink = GST_AMLVSINK(element);
+    switch (GST_EVENT_TYPE(event)) {
+    case GST_EVENT_SEGMENT:
+        gst_event_copy_segment(event, &amlvsink->segment);
+        GST_INFO_OBJECT(amlvsink, "rat =  %f\n", amlvsink->segment.rate);
+        g_print("ratev =  %f\n", amlvsink->segment.rate);
+        ret = GST_BASE_SINK_CLASS(parent_class)->event(element, event);
+        break;
+    default:
+        ret = GST_BASE_SINK_CLASS(parent_class)->event(element, event);
+        break;
+    }
+
+    return ret;
 }
 
 static gboolean
