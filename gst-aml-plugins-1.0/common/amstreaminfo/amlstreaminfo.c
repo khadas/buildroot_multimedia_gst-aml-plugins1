@@ -10,7 +10,7 @@ int amlStreamInfoWriteHeader(AmlStreamInfo *info, codec_para_t *pcodec)
 {
 	GstMapInfo map;
     if(NULL == info->configdata){
-        GST_WARNING("[%s:%d] configdata is null", __FUNCTION__, __LINE__);
+        GST_WARNING("configdata is null");
         return 0;
     }
     gst_buffer_map(info->configdata, &map, GST_MAP_READ);
@@ -31,7 +31,6 @@ AmlStreamInfo *createStreamInfo(gint size)
     info->add_startcode = NULL;
     info->finalize = amlStreamInfoFinalize;
     info->configdata = NULL;
-//    GST_WARNING("[%s:%d]", __FUNCTION__, __LINE__);
     return info;
 }
 

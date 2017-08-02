@@ -3,7 +3,7 @@
  * Copyright (C) 2005 Thomas Vander Stichele <thomas@apestaart.org>
  * Copyright (C) 2005 Ronald S. Bultje <rbultje@ronald.bitfreak.net>
  * Copyright (C) 2015 U-AMLOGICTao.Guo <<user@hostname.org>>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -104,7 +104,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
         "video/x-flash-video, "
         COMMON_VIDEO_CAPS "; "
         "video/x-h263, "
-        COMMON_VIDEO_CAPS "; "        
+        COMMON_VIDEO_CAPS "; "
         "video/x-msmpeg, "
         COMMON_VIDEO_CAPS "; "
         "image/jpeg, "
@@ -122,7 +122,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
 //	        "video/x-raw, "
 //	        "format = (string) { YUY2, I420, YV12, UYVY, AYUV, GRAY8, BGR, RGB }, "
 //	        COMMON_VIDEO_CAPS "; "
-        "video/x-pn-realvideo; " 
+        "video/x-pn-realvideo; "
         "video/x-wmv, "
         "wmvversion = (int) { 1, 3 }, "
         COMMON_VIDEO_CAPS)
@@ -145,9 +145,9 @@ static gboolean					gst_aml_vdec_stop(GstVideoDecoder * dec);
 static gboolean					gst_aml_vdec_set_format(GstVideoDecoder *dec, GstVideoCodecState *state);
 static GstFlowReturn			gst_aml_vdec_handle_frame(GstVideoDecoder *dec, GstVideoCodecFrame *frame);
 static void					gst_aml_vdec_flush(GstVideoDecoder * dec);
-static gboolean					gst_amlvdec_sink_event  (GstVideoDecoder * amlvdec, GstEvent * event);
+static gboolean					gst_aml_vdec_sink_event  (GstVideoDecoder * amlvdec, GstEvent * event);
 static gboolean					gst_set_vstream_info(GstAmlVdec *amlvdec, GstCaps * caps);
-static GstFlowReturn			gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf);
+static GstFlowReturn			gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf, GstVideoCodecFrame *frame);
 static GstStateChangeReturn		gst_aml_vdec_change_state (GstElement * element, GstStateChange transition);
 
 #define gst_aml_vdec_parent_class parent_class
@@ -165,7 +165,7 @@ gst_aml_vdec_class_init (GstAmlVdecClass * klass)
 
 	gobject_class->set_property = gst_aml_vdec_set_property;
 	gobject_class->get_property = gst_aml_vdec_get_property;
-	
+
 	element_class->change_state = GST_DEBUG_FUNCPTR (gst_aml_vdec_change_state);
 	gst_element_class_add_pad_template(element_class, gst_static_pad_template_get(&sink_factory));
 	gst_element_class_add_pad_template(element_class, gst_static_pad_template_get(&src_factory));
@@ -183,7 +183,7 @@ gst_aml_vdec_class_init (GstAmlVdecClass * klass)
 	base_class->set_format = GST_DEBUG_FUNCPTR(gst_aml_vdec_set_format);
 	base_class->handle_frame = GST_DEBUG_FUNCPTR(gst_aml_vdec_handle_frame);
 	base_class->flush = GST_DEBUG_FUNCPTR(gst_aml_vdec_flush);
-	base_class->sink_event =  GST_DEBUG_FUNCPTR(gst_amlvdec_sink_event);
+	base_class->sink_event =  GST_DEBUG_FUNCPTR(gst_aml_vdec_sink_event);
 
 }
 
@@ -300,15 +300,13 @@ gst_aml_vdec_close(GstVideoDecoder * dec)
 {
 	GstAmlVdec *amlvdec = GST_AMLVDEC(dec);
 	gint ret = 0;
-	GST_ERROR("%s,%d", __FUNCTION__, __LINE__);
 	stop_eos_task(amlvdec);
 	if (amlvdec->codec_init_ok) {
 		amlvdec->codec_init_ok = 0;
 		if (amlvdec->is_paused == TRUE) {
 			ret = codec_resume(amlvdec->pcodec);
 			if (ret != 0) {
-				GST_ERROR("[%s:%d]resume failed!ret=%d", __FUNCTION__, __LINE__,
-						ret);
+				GST_ERROR("resume failed!ret=%d", ret);
 			} else {
 				amlvdec->is_paused = FALSE;
 			}
@@ -322,8 +320,6 @@ gst_aml_vdec_close(GstVideoDecoder * dec)
 			amlvdec->input_state = NULL;
 		}
 
-		set_fb0_blank(0);
-		set_fb1_blank(0);
 	}
 	if (amlvdec->info) {
 		amlvdec->info->finalize(amlvdec->info);
@@ -402,7 +398,7 @@ static gboolean gst_aml_vdec_set_format(GstVideoDecoder *dec, GstVideoCodecState
 
 	structure = gst_caps_get_structure(state->caps, 0);
 	name = gst_structure_get_name(structure);
-	GST_INFO_OBJECT(amlvdec, "%s = %s", __FUNCTION__, name);
+	GST_INFO_OBJECT(amlvdec, "format = %s", name);
 	if (name) {
 		ret = gst_set_vstream_info(amlvdec, state->caps);
 		if (!amlvdec->output_state && amlvdec->pcodec->am_sysinfo.width
@@ -434,11 +430,12 @@ gst_aml_vdec_handle_frame(GstVideoDecoder *dec, GstVideoCodecFrame *frame)
 	GSList *l;
 	GstVideoCodecFrame *p = frame;
 
-	GST_DEBUG_OBJECT(amlvdec, "handle frame %d", g_slist_length(amlvdec->list));
 
 	if (G_UNLIKELY(!frame)) {
 		return GST_FLOW_OK;
 	}
+
+	GST_DEBUG_OBJECT(amlvdec, "handle frame %p, %llu, %d", frame, frame->pts, g_slist_length(amlvdec->list));
 
 	amlvdec->list = g_slist_append(amlvdec->list, (gpointer) frame);
 
@@ -458,8 +455,8 @@ gst_aml_vdec_handle_frame(GstVideoDecoder *dec, GstVideoCodecFrame *frame)
 				GST_ERROR_OBJECT(amlvdec, "failed to allocate output frame");
 				gst_video_codec_frame_unref(p);
 			} else {
-				gst_aml_vdec_decode(amlvdec, p->input_buffer);
-				GST_BUFFER_FLAG_SET(p->output_buffer, (1 << 16));
+				gst_aml_vdec_decode(amlvdec, p->input_buffer, p);
+				GST_BUFFER_FLAG_SET(p->output_buffer, (1 << 16));   //set flag to avoid use yuvplayer
 				gst_video_decoder_finish_frame(dec, p);
 			}
 		}
@@ -472,11 +469,11 @@ gst_aml_vdec_handle_frame(GstVideoDecoder *dec, GstVideoCodecFrame *frame)
 }
 
 static gboolean
-gst_amlvdec_sink_event  (GstVideoDecoder * dec, GstEvent * event)
+gst_aml_vdec_sink_event  (GstVideoDecoder * dec, GstEvent * event)
 {
 	gboolean ret = TRUE;
 	GstAmlVdec *amlvdec = GST_AMLVDEC(dec);
-	GST_ERROR_OBJECT(amlvdec, "Got %s event on sink pad",
+	GST_DEBUG_OBJECT(amlvdec, "Got %s event on sink pad",
 			GST_EVENT_TYPE_NAME(event));
 	switch (GST_EVENT_TYPE(event)) {
 
@@ -592,7 +589,7 @@ gst_aml_vdec_change_state (GstElement * element, GstStateChange transition)
 	default:
 		break;
 	}
-	GST_WARNING_OBJECT(amlvdec, "ret=%d", result);
+	GST_DEBUG_OBJECT(amlvdec, "ret=%d", result);
 	return result;
 }
 
@@ -604,7 +601,7 @@ gst_aml_vdec_flush(GstVideoDecoder * dec)
 	GSList *l;
 	GstVideoCodecFrame *frame;
 	GstAmlVdec *amlvdec = GST_AMLVDEC(dec);
-	GST_WARNING_OBJECT(amlvdec, "%s,%d", __FUNCTION__, __LINE__);
+	GST_WARNING_OBJECT(amlvdec, "flush");
 
 	if (amlvdec->codec_init_ok) {
 		unsigned long pts;
@@ -660,11 +657,7 @@ gst_set_vstream_info(GstAmlVdec *amlvdec, GstCaps * caps)
 				GST_ERROR("codec init failed, ret=-0x%x", -ret);
 				return FALSE;
 			}
-			set_fb0_blank(1);
-			set_fb1_blank(1);
-			set_tsync_enable(1);
-			set_display_axis(coordinate);
-			//set_video_axis(coordinate);
+			codec_set_pcrscr(amlvdec->pcodec, 0);
 			amlvdec->codec_init_ok = 1;
 			if (amlvdec->trickRate > 0) {
 				if (amlvdec->pcodec && amlvdec->pcodec->cntl_handle) {
@@ -680,7 +673,7 @@ gst_set_vstream_info(GstAmlVdec *amlvdec, GstCaps * caps)
 }
 
 static GstFlowReturn
-gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf)
+gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf, GstVideoCodecFrame *frame)
 {
 	GstFlowReturn ret = GST_FLOW_OK;
 	guint8 *data;
@@ -701,10 +694,13 @@ gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf)
 			}
 			usleep(20000);
 		}
+		/*
 		if (GST_BUFFER_PTS_IS_VALID(buf))
 			timestamp = GST_BUFFER_PTS(buf);
 		else if (GST_BUFFER_DTS_IS_VALID(buf))
 			timestamp = GST_BUFFER_DTS(buf);
+			*/
+		timestamp = frame->pts;
 		pts = timestamp * 9LL / 100000LL + 1L;
 
 		if (timestamp != GST_CLOCK_TIME_NONE) {
@@ -732,7 +728,7 @@ gst_aml_vdec_decode (GstAmlVdec *amlvdec, GstBuffer * buf)
 		data = map.data;
 		size = map.size;
 #if 0
-		FILE *fp2= fopen("/data/codec.data","a+");
+		FILE *fp2= fopen("/mnt/codec.data","a+");
 		if (fp2) {
 			int flen=fwrite(data,1,size,fp2);
 			fclose(fp2);

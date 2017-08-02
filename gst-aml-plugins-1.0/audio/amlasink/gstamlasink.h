@@ -22,7 +22,7 @@
 #define __GSTAMLASINK_H__
 
 #include <gst/gst.h>
-#include <gst/audio/gstaudiosink.h>
+#include <gst/base/gstbasesink.h>
 
 G_BEGIN_DECLS
 
@@ -33,7 +33,7 @@ G_BEGIN_DECLS
 #define GST_AMLASINK_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_AMLASINK,GstAmlAsinkClass))
 #define GST_AMLASINK_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS((obj),GST_TYPE_AMLASINK,GstAmlAsinkClass))    
+  (G_TYPE_INSTANCE_GET_CLASS((obj),GST_TYPE_AMLASINK,GstAmlAsinkClass))
 #define GST_IS_AMLASINK(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_AMLASINK))
 #define GST_IS_AMLASINK_CLASS(klass) \
@@ -43,7 +43,7 @@ typedef struct _GstAmlAsink GstAmlAsink;
 typedef struct _GstAmlAsinkClass GstAmlAsinkClass;
 
 struct _GstAmlAsink {
-  GstAudioSink audiosink;
+  GstBaseSink basesink;
 
   /*< private >*/
   GstSegment segment;
@@ -54,7 +54,7 @@ struct _GstAmlAsink {
 };
 
 struct _GstAmlAsinkClass {
-  GstAudioSinkClass parent_class;
+  GstBaseSinkClass parent_class;
 };
 
 GType gst_aml_asink_get_type(void);

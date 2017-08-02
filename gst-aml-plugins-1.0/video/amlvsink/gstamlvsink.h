@@ -5,7 +5,7 @@
 #define __GST_GSTAMLVSINK_H__
 
 #include <gst/gst.h>
-#include <gst/video/gstvideosink.h>
+#include <gst/base/gstbasesink.h>
 #include <gst/video/video.h>
 #include <yuvplayer/ion.h>
 #include <yuvplayer/amvideo.h>
@@ -29,6 +29,11 @@ G_BEGIN_DECLS
 #define GST_IS_AMLVSINK_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_AMLVSINK))
 
+#define DEFAULT_WINDOW_X (0)
+#define DEFAULT_WINDOW_Y (0)
+#define DEFAULT_WINDOW_WIDTH (0)
+#define DEFAULT_WINDOW_HEIGHT (0)
+
 typedef struct _GstAmlVsink GstAmlVsink;
 typedef struct _GstAmlVsinkClass GstAmlVsinkClass;
 
@@ -42,7 +47,7 @@ typedef struct {
 }out_buffer_t;
 
 struct _GstAmlVsink {
-  GstVideoSink videosink;
+  GstBaseSink basesink;
   struct amvideo_dev *amvideo_dev;
   out_buffer_t * mOutBuffer;
   int align_width, yuv_width, width, height;
@@ -50,6 +55,7 @@ struct _GstAmlVsink {
   int mIonFd;
   int use_yuvplayer;
   GstSegment segment;
+  int coordinate[4];
 #if DEBUG_DUMP
   int dump_fd;
 #endif
@@ -57,7 +63,7 @@ struct _GstAmlVsink {
 };
 
 struct _GstAmlVsinkClass {
-  GstVideoSinkClass videosink_class;
+  GstBaseSinkClass parent_class;
 };
 
 GType gst_aml_vsink_get_type(void);
